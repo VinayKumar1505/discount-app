@@ -53,5 +53,31 @@ class ShopifyApiClient
         $data = json_decode($response->getBody()->getContents(), true);
         return $data['product'] ?? [];
     }
-     
+
+    public function updateVariantPrice(int $variantId, float $price): array
+    {
+        dump("updating variant price", $variantId, $price);
+        $response = $this->client->request('PUT', "{$this->storeUrl}/admin/api/{$this->shopifyApiVersion}/variants/{$variantId}.json", [
+            'headers' => [
+                'X-Shopify-Access-Token' => $this->accessToken,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ],
+            'json' => [
+                'variant' => [
+                    'id' => $variantId,
+                    'price' => $price,
+                ],
+            ],
+        ]);
+
+        dump("the response", $response);
+        if ($response->getStatusCode() !== 200) {
+            throw new \RuntimeException("Failed to update variant price for ID {$variantId}");
+        }
+
+        $data = json_decode($response->getBody()->getContents(), true);
+        return $data['variant'] ?? [];
+    }
+
 }
