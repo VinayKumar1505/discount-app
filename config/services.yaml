@@ -1,0 +1,61 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+
+services:
+    GuzzleHttp\Client: ~
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Service\Discount\:
+        resource: '../src/Service/Discount/'
+        autowire: true
+        autoconfigure: true
+
+    App\Service\Discount\PercentageDiscountStrategy:
+        tags: ['app.discount_strategy']
+        arguments: [10]
+
+    App\Service\Discount\FixedAmountDiscountStrategy:
+        tags: ['app.discount_strategy']
+        arguments: [100]
+
+    App\Service\Discount\BOGODiscountStrategy:
+        tags: ['app.discount_strategy']
+        arguments: [1]
+
+    App\Service\Discount\DiscountStrategyFactory:
+        arguments:
+            $strategies: !tagged_iterator 'app.discount_strategy'
+
+    App\Service\Shopify\ShopifyApiClient:
+        arguments:
+            # $shopifyApiKey: '%env(SHOPIFY_API_KEY)%'
+            # $shopifyApiSecret: '%env(SHOPIFY_API_SECRET)%'
+            $client: '@GuzzleHttp\Client'
+            $shopifyApiVersion: '%env(SHOPIFY_API_VERSION)%'
+            $storeUrl: '%env(SHOPIFY_STORE_URL)%'
+            $accessToken: '%env(SHOPIFY_ACCESS_TOKEN)%'
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+        autowire: true
+        autoconfigure: true
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
