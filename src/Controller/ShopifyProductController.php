@@ -46,16 +46,25 @@ class ShopifyProductController
         $logger->info("updating variant price", ['id' => $id]);
         try {
             $product = $shopifyApiClient->getProductById($id);
-            $logger->info("fetched product", ['product' => $product]);
-            $variant = $product['product']['variants'][0]?? null;
-            $logger->info("variant fetched", ['variant' => $variant]);
-            $originalPrice = (float)$variant['price'] ?? null;
-            $logger->info("original price", ['price' => $originalPrice]);
+            $variants = $product['variants']?? null;
+            $results = [];
+            foreach ($variants as $variant) {
+                $originalPrice = (float)$variant['price'] ?? null;
+                $discountContext->setStrategy(new FixedAmountDiscountStrategy(100));
+                $discountedPrice = $discountContext->applyDiscount($originalPrice);
+                $updatedVariant = $shopifyApiClient->updateVariantPrice($variant['id'], $discountedPrice);
+                $results[] = [
+                    'original_price' => $originalPrice,
+                    'discounted_price' => $discountedPrice,
+                    'updated_variant' => $updatedVariant
+                ];
+            }
+            return new JsonResponse(['variants_updated' => $results], 200);
 
-            $discountContext->setStrategy(new FixedAmountDiscountStrategy(100));
-            $discountedPrice = $discountContext->applyDiscount($originalPrice);
-            $updatedVariant = $shopifyApiClient->updateVariantPrice($variant['id'], $discountedPrice);
-            $logger->info("variant price updated", ['id' => $variant['id'], 'price' => $discountedPrice]);
+            // $originalPrice = (float)$variant['price'] ?? null;
+            // $discountContext->setStrategy(new FixedAmountDiscountStrategy(100));
+            // $discountedPrice = $discountContext->applyDiscount($originalPrice);
+            // $updatedVariant = $shopifyApiClient->updateVariantPrice($variant['id'], $discountedPrice);
         } catch (\Throwable $th) {
             return new JsonResponse(['error' => 'Failed to update price for variant with id ' . $id . ': ' . $th->getMessage()], 500);
         }
@@ -64,6 +73,7 @@ class ShopifyProductController
             return new JsonResponse(['error' => 'Variant not found'], 404);
         }
 
-        return new JsonResponse($updatedVariant, 200);
+        // return new JsonResponse($updatedVariant, 200);
+        // return new JsonResponse(['original_price' => $originalPrice, 'discounted_price' => $discountedPrice, 'updated_variant' => $updatedVariant], 200);
     }
 }
