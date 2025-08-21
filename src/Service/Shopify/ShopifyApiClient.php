@@ -71,7 +71,6 @@ class ShopifyApiClient
             ],
         ]);
 
-        dump("the response", $response);
         if ($response->getStatusCode() !== 200) {
             throw new \RuntimeException("Failed to update variant price for ID {$variantId}");
         }
